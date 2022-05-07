@@ -1,19 +1,14 @@
-import streamlit as st
-import tempfile
 import os
 import sqlite3
+import tempfile
+
+import streamlit as st
 import validators
-from gpt_api import create_dialog_gtp04mini, create_ssml_gpt04mini, dialog_promt, ssml_promt, check_article, check_promt
-from voice_api import voice_synth
-from parser import pdf_to_txt, url_to_txt
-from nltk import download
-from nltk.corpus import stopwords
 from newspaper.article import ArticleException
 
-# Загрузка необходимых ресурсов для nltk
-download('stopwords')
-download('punkt')
-stop_words = stopwords.words('russian')
+from gpt_api import create_dialog_gtp04mini, create_ssml_gpt04mini, dialog_promt, ssml_promt, check_article, check_promt
+from parser import pdf_to_txt, url_to_txt
+from voice_api import voice_synth
 
 # Инициализация базы данных для хранения истории
 conn = sqlite3.connect('dialog_history.db')
