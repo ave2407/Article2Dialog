@@ -43,8 +43,6 @@ def pdf_to_txt(pdf_path, output_txt_path):
     print(f"PDF with LaTeX parsed to text and saved as '{output_txt_path}'.")
 
 
-
-
 def url_to_txt(url, output_txt_path):
     """
     Extracts article content from a URL and saves it as a text file.
