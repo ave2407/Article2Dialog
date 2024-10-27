@@ -3,7 +3,7 @@ import tempfile
 import os
 import sqlite3
 import validators
-from gpt_api import create_dialog_gtp04mini, create_ssml_gpt04mini, dialog_promt, ssml_promt
+from gpt_api import create_dialog_gtp04mini, create_ssml_gpt04mini, dialog_promt, ssml_promt, check_article, check_promt
 from voice_api import voice_synth
 from parser import pdf_to_txt, url_to_txt
 from nltk import download
@@ -56,16 +56,12 @@ with col2:
 # Логика кнопки генерации диалога с прогресс-баром и аудио
 if generate_button:
     if file or url:
-        st.info("⏳ Идет обработка...")
-        progress = st.progress(0)
+        st.info("⏳ Идет проверка возможности генерации диалога...")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             text_path = None
-            # Этап 1: Обработка файла или URL
-            st.text("📂 Обработка файла или URL")
-            progress.progress(0.25)
 
-            # Проверка и обработка файла или URL
+            # Этап 1: Обработка файла или URL
             if file:
                 if file.type == "application/pdf":
                     pdf_path = os.path.join(temp_dir, file.name)
@@ -84,47 +80,59 @@ if generate_button:
                         url_to_txt(url, text_path)
                     except ArticleException as e:
                         st.error(f"Ошибка загрузки статьи: {e}. Проверьте корректность URL.")
-                        text_path = None  # Сбрасываем text_path при ошибке
+                        text_path = None  # Пропустить обработку, если URL недоступен
 
-            # Этап 2: Генерация диалога
+            # Чтение текста и проверка через check_article
             if text_path:
-                st.text("🗣️ Генерация диалога")
-                progress.progress(0.5)
+                with open(text_path, "r", encoding='utf-8') as f:
+                    article_text = f.read()
 
-                dialog_text = create_dialog_gtp04mini(dialog_promt, dialog_input_path=text_path)
-                ssml_text = create_ssml_gpt04mini(ssml_promt, ssml_text=dialog_text)
+                # Запрос к check_article
+                check_result = check_article(check_promt, article_text=article_text)
 
-                # Отображение диалога, даже если синтез речи не удается
-                st.success("✅ Диалог успешно создан!")
-                st.subheader("Сгенерированный диалог")
-                st.write(dialog_text)
+                if check_result.startswith("OK"):
+                    # Продолжаем генерацию диалога, если "OK"
+                    st.info("✅ Текст проверен, начинается генерация диалога.")
+                    progress = st.progress(0.25)
 
-                # Этап 3: Синтез речи с обработкой ошибок
-                audio_path = os.path.join(temp_dir, "output_audio.wav")
-                try:
-                    st.text("🎙️ Синтез речи")
-                    progress.progress(0.75)
-                    voice_synth(wav_output_path=audio_path, prompt_text=ssml_text)
-                    st.text("✅ Завершение обработки")
-                    progress.progress(1.0)
+                    # Этап 2: Генерация диалога
+                    dialog_text = create_dialog_gtp04mini(dialog_promt, dialog_input_path=text_path)
+                    ssml_text = create_ssml_gpt04mini(ssml_promt, ssml_text=dialog_text)
 
-                    # Воспроизведение аудио на сайте
-                    st.subheader("Прослушать диалог")
-                    st.audio(audio_path, format="audio/wav")
+                    st.success("✅ Диалог успешно создан!")
+                    st.subheader("Сгенерированный диалог")
+                    st.write(dialog_text)
 
-                    # Кнопка для скачивания аудиофайла
-                    with open(audio_path, "rb") as f:
-                        st.download_button(label="📥 Скачать аудио", data=f, file_name="dialog_audio.wav",
-                                           mime="audio/wav")
+                    # Этап 3: Синтез речи с обработкой ошибок
+                    audio_path = os.path.join(temp_dir, "output_audio.wav")
+                    try:
+                        st.text("🎙️ Синтез речи")
+                        progress.progress(0.75)
+                        voice_synth(wav_output_path=audio_path, prompt_text=ssml_text)
+                        st.text("✅ Завершение обработки")
+                        progress.progress(1.0)
 
-                except Exception as e:
-                    # Если синтез не удается, выводим сообщение об ошибке
-                    st.error(f"Ошибка синтеза речи: {e}")
-                    st.warning("Диалог отображен, но синтез речи недоступен.")
+                        # Воспроизведение аудио на сайте
+                        st.subheader("Прослушать диалог")
+                        st.audio(audio_path, format="audio/wav")
 
-                # Сохранение диалога в историю, независимо от успеха синтеза
-                source = file.name if file else url
-                save_to_history(source, dialog_text, audio_path if os.path.exists(audio_path) else None)
+                        # Кнопка для скачивания аудиофайла
+                        with open(audio_path, "rb") as f:
+                            st.download_button(label="📥 Скачать аудио", data=f, file_name="dialog_audio.wav",
+                                               mime="audio/wav")
+
+                    except Exception as e:
+                        # Если синтез не удается, выводим сообщение об ошибке
+                        st.error(f"Ошибка синтеза речи: {e}")
+                        st.warning("Диалог отображен, но синтез речи недоступен.")
+
+                    # Сохранение диалога в историю
+                    source = file.name if file else url
+                    save_to_history(source, dialog_text, audio_path if os.path.exists(audio_path) else None)
+
+                else:
+                    # Если check_article возвращает "NO", не генерируем диалог и выводим сообщение
+                    st.error(f"Этот текст нельзя представить в виде диалога: {check_result}")
 
 # Логика кнопки истории
 if history_button:

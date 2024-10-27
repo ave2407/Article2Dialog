@@ -13,14 +13,35 @@ client = OpenAI(
 )
 
 
+def check_article(check_promt, article_input_path=None, article_text=None):
+    if article_input_path is not None:
+        with open(article_input_path, "r", encoding='utf-8') as file:
+            file_content = file.read()  # Считываем текст файла
+    else:
+        file_content = article_text
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0.3,
+        messages=[
+            {"role": "user",
+             "content": f"{check_promt}\n\nСодержимое файла:\n{file_content}"}
+        ]
+    )
+
+    return response.choices[0].message.content
+
+
 def create_dialog_gtp04mini(dialog_promt, dialog_input_path=None, dialog_text=None):
     if dialog_input_path is not None:
         with open(dialog_input_path, "r", encoding='utf-8') as file:
             file_content = file.read()  # Считываем текст файла
     else:
         file_content = dialog_text
+
     response = client.chat.completions.create(
         model="gpt-4o-mini",
+        temperature=0.6,
         messages=[
             {"role": "user",
              "content": f"{dialog_promt}\n\nСодержимое файла:\n{file_content}"}
@@ -46,6 +67,10 @@ def create_ssml_gpt04mini(ssml_promt, ssml_input_path=None, ssml_text=None):
     return response.choices[0].message.content
 
 
+check_promt = """
+Тебе дан текст, ты должен проверить, является ли он какой-то статьей, новостью или публикацией. Если он осмысленный, выведи "OK", если это бессвязный текст или содержит что-то крайне неприличное, выведи, "<причина c небольшим пояснением>"
+"""
+
 dialog_promt = """Преобразуй данную статью в формате диалога между отцом и дочерью-подростком. Отец должен объяснять суть текста простыми, понятными словами, избегая сложных терминов, а также отвечать на вопросы дочери, которые помогают раскрыть и уточнить основные идеи. Начинай с краткого объяснения темы, а затем используй диалог, чтобы глубже раскрыть содержание, акцентируя внимание на ключевых моментах. Диалог должен быть сбалансированным: дочери — вопросы, отцу — ответы, без потери важной информации.
 
 Пример структуры диалога:
@@ -60,7 +85,7 @@ dialog_promt = """Преобразуй данную статью в формат
 Дочь: "Ага, а что такое ..."
 Отец: "...".
 
-Задача: Сделать объяснения короткими, но исчерпывающими. Заверши диалог, подытожив главные выводы статьи. Диалоги могут отличаться от примера. Не выводи ничего кроме диалога
+Задача: Сделать объяснения короткими, но исчерпывающими. Заверши диалог, подытожив главные выводы статьи. Диалоги не должны копировать пример. Не выводи ничего кроме диалога"
 """
 ssml_promt = """Прочитай загруженный txt файл и создай идеальный SSML-код, который точно озвучит диалог между дочкой-подростком ('sveta') и её отцом ('kovalev'), объясняющим ей какую-то тему. Добавь паузы, замедление или ускорение речи, изменения тембра, чтобы передать соответствующие эмоции и интонации.
 <speak>
