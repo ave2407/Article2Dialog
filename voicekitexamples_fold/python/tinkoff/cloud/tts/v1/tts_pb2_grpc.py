@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from voicekitexamples.python.tinkoff.cloud.tts.v1 import tts_pb2 as tinkoff_dot_cloud_dot_tts_dot_v1_dot_tts__pb2
+from voicekitexamples_fold.python.tinkoff.cloud.tts.v1 import tts_pb2 as tinkoff_dot_cloud_dot_tts_dot_v1_dot_tts__pb2
 
 
 class TextToSpeechStub(object):
