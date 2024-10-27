@@ -7,6 +7,7 @@ import validators
 from newspaper.article import ArticleException
 
 from gpt_api import create_dialog_gtp04mini, create_ssml_gpt04mini, dialog_promt, ssml_promt, check_article, check_promt
+from llama import create_dialog_llama
 from parser import pdf_to_txt, url_to_txt
 from voice_api import voice_synth
 
@@ -23,6 +24,11 @@ def save_to_history(source, dialog, audio_path):
     c.execute("INSERT INTO history (source, dialog, audio_path) VALUES (?, ?, ?)", (source, dialog, audio_path))
     conn.commit()
 
+
+api_choice = st.sidebar.select_slider(
+    "Выберите модель для генерации диалога:",
+    options=["ChatGPT API", "LLaMA Local"]
+)
 
 # Описание проекта
 st.title("👨‍👧 Преобразование текста в диалог с синтезом речи")
@@ -50,6 +56,9 @@ with col2:
 
 # Логика кнопки генерации диалога с прогресс-баром и аудио
 if generate_button:
+    if not file and not url:
+        st.warning("Пожалуйста, загрузите файл или введите URL для обработки.")
+
     if file or url:
         st.info("⏳ Идет проверка возможности генерации диалога...")
 
@@ -91,12 +100,19 @@ if generate_button:
                     progress = st.progress(0.25)
 
                     # Этап 2: Генерация диалога
-                    dialog_text = create_dialog_gtp04mini(dialog_promt, dialog_input_path=text_path)
-                    ssml_text = create_ssml_gpt04mini(ssml_promt, ssml_text=dialog_text)
-
-                    st.success("✅ Диалог успешно создан!")
-                    st.subheader("Сгенерированный диалог")
-                    st.write(dialog_text)
+                    if api_choice == "ChatGPT API":
+                        dialog_text = create_dialog_gtp04mini(dialog_promt, dialog_input_path=text_path)
+                        ssml_text = create_ssml_gpt04mini(ssml_promt, ssml_text=dialog_text)
+                        st.success("✅ Диалог успешно создан!")
+                        st.subheader("Сгенерированный диалог")
+                        st.write(dialog_text)
+                    else:
+                        server_url = "https://2f3d-35-198-228-94.ngrok-free.app/"  # Укажите URL вашего сервера LLaMA
+                        response = create_dialog_llama(server_url, article_text)
+                        print(response)
+                        dialog_text = "sorry, no dialogue"
+                        ssml_text = response['dialogue']
+                        st.success("✅ Диалог успешно создан!")
 
                     # Этап 3: Синтез речи с обработкой ошибок
                     audio_path = os.path.join(temp_dir, "output_audio.wav")

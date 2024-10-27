@@ -1,7 +1,8 @@
-from newspaper import Article
-import fitz  # PyMuPDF
-import re
 import os
+import re
+
+import fitz  # PyMuPDF
+from newspaper import Article
 
 
 def pdf_to_txt(pdf_path, output_txt_path):
@@ -63,13 +64,3 @@ def url_to_txt(url, output_txt_path):
     with open(output_txt_path, 'r', encoding='utf-8') as f:
         content = f.read()
     return content
-
-# Example usage
-# url = 'https://www.rbc.ru/politics/01/12/2022/638845cc9a7947db118aebe3'
-# output_txt_path = 'output_article.txt'
-# url_to_txt(url, output_txt_path)
-
-# Example usage
-pdf_path = 'parser/Soft_Hydrogel_Actuator_for_Fast_Machine_Learning_Assisted_Bacteria.pdf'
-output_txt_path = 'articles/Soft_Hydrogel_Actuator_for_Fast_Machine_Learning_Assisted_Bacteria.txt'
-pdf_to_txt(pdf_path, output_txt_path)

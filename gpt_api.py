@@ -1,7 +1,4 @@
 from openai import OpenAI
-from pathlib import Path
-from tqdm import tqdm
-import os
 
 OPENAI_API_KEY = "sk-WtQcuu7ZV6tXfUOhapb2JzORObV42kRF"
 # OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
